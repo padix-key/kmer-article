@@ -38,6 +38,8 @@
   bibliography-file: "refs.bib",
 )
 
+#set figure(supplement: none)
+
 
 = Introduction
 A common task in bioinformatics is finding similar regions between sequences.
@@ -199,7 +201,23 @@ $ f(x) = (a x + c) mod m $
 
 == Decomposition performance
 
+#figure(
+  image("benchmark/benchmark.svg", width: 100%),
+  caption: [
+    This is a caption.
+  ],
+) <figure_benchmark>
+
+@figure_benchmark shows how the mentioned decomposition methods compare to each other.
+
 This makes the decomposition especially fast for methods that use long #kmers #todo[cite, kallisto].
 #todo[Name speedup at k=31]
 
+Note that the shown benchmark also include sequence encoding itself:
+If the implementing library already store sequences in their sequence code form, #kmer decomposition
+becomes faster that shown in the benchmark.
+
 = Conclusion
+
+This code representation of sequences and #kmers as well as the fast decomposition method is
+implemented in the _Python_ bioinformatics library _Biotite_.

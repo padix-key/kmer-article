@@ -1,2 +1,4 @@
 *.pdf
 .vscode
+benchmark/target
+Cargo.lock

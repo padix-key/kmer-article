@@ -1,0 +1,13 @@
+[package]
+name = "benchmark"
+version = "1.0.0"
+edition = "2021"
+
+[[bin]]
+name = "benchmark"
+path = "benchmark.rs"
+
+[dependencies]
+json = "~0.12"
+rand = "~0.8"
+rand_chacha = "~0.3"
