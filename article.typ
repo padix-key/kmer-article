@@ -1,4 +1,5 @@
-#import "template.typ": *
+#import "@preview/charged-ieee:0.1.0": ieee
+
 
 #let kmer = [$k$-mer]
 #let kmers = [$k$-mers]
@@ -15,7 +16,7 @@
 
 
 #show: ieee.with(
-  title: "A fast and simple approach to k-mer decomposition",
+  title: [A fast and simple approach to #kmer decomposition],
   abstract: [
     Alignment searches are fast heuristic methods to identify similar regions between two sequences.
     This group of algorithms is ubiquitously used in a myriad of software to find homologous
@@ -35,10 +36,8 @@
     ),
   ),
   index-terms: ("k-mers", "Alignment"),
-  bibliography-file: "refs.bib",
+  bibliography: bibliography("refs.bib"),
 )
-
-#set figure(supplement: none)
 
 
 = Introduction
@@ -137,7 +136,6 @@ the length of such alphabet is
 $ |Omega_k| = |Omega|^k. $
 
 == #kmer decomposition
-
 Performing #kmer decomposition of a seqeunce into #kmer codes requires application of
 @equation_kmer_code for each overlapping #kmer. Thus,
 
@@ -167,10 +165,7 @@ This is true e.g. for unambigous nucleotide sequences with $|Omega| = 4$.
 In this case the multiplication with $|Omega|$ can be substituted with a fast bit shift operation
 #todo[cite].
 
-
-
 == Pseudorandom ordering
-
 In some scenarios the order of #kmer codes is relevant.
 For example minimizers #todo(cite) select only the smallest #kmer from a window of #kmers.
 This decreases the number of considered #kmers and in consequence improves the speed of finding
@@ -200,7 +195,6 @@ $ f(x) = (a x + c) mod m $
 = Results and Discussion
 
 == Decomposition performance
-
 #figure(
   image("benchmark/benchmark.svg", width: 100%),
   caption: [
@@ -218,6 +212,5 @@ If the implementing library already store sequences in their sequence code form,
 becomes faster that shown in the benchmark.
 
 = Conclusion
-
 This code representation of sequences and #kmers as well as the fast decomposition method is
 implemented in the _Python_ bioinformatics library _Biotite_.
