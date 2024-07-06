@@ -1,8 +1,8 @@
 #import "@preview/charged-ieee:0.1.0": ieee
 
 
-#let kmer = [$k$-mer]
-#let kmers = [$k$-mers]
+#let kmer = box[$k$-mer]
+#let kmers = box[$k$-mers]
 
 #let todo(msg) = {
   [#text(fill: red, weight: "bold", size: 10pt)[TODO #msg]]
@@ -139,8 +139,9 @@ $ |Omega_k| = |Omega|^k. $
 Performing #kmer decomposition of a seqeunce into #kmer codes requires application of
 @equation_kmer_code for each overlapping #kmer. Thus,
 
-$ c_k (j) = sum_(i=1)^k c(i+j-1) times |Omega|^(k-i). $ <equation_naive>
+$ c_k (j) = sum_(i=1)^k c(i+j-1) times |Omega|^(k-i), $ <equation_naive>
 
+where $j$ defines the 0-based sequence position where the #kmer starts.
 A naive implementation of this formula has a time complexity of $O(n k)$, where $n$ is the length of
 the sequence.
 However, it ignores the relation between two consecutive #kmer codes:
@@ -151,16 +152,17 @@ $ c_k (j+1)
   &= lr([ sum_(i=2)^(k) c(i+j-1) times |Omega|^(k-i+1) ]) + c(k+j) \
   &= |Omega| lr([ sum_(i=2)^(k) c(i+j-1) times |Omega|^(k-i) ]) + c(k+j) \
   // &= |Omega| lr([ lr([ sum_(i=1)^(k) c(i+j-1) times |Omega|^(k-i) ]) - c(j) |Omega|^(k-1) ]) \+ c(k+j) \
-  &= |Omega| lr([ c_k (j) - c(j) |Omega|^(k-1) ]) + c(k+j). $ <equation_decomposition>
+  &= |Omega| lr([ c_k (j) - c(j) |Omega|^(k-1) ]) + c(k+j).
+$ <equation_decomposition>
 
 Intuitively, the #kmer code of the previous #kmer is taken, the symbol code of its first symbol
 is removed, the remainder is shifted to the left and the symbol code of the entering symbol is
 added.
 
-As @equation_decomposition has no sum anymore, the time complexity is reduced to $O(n)$.
+As @equation_decomposition contains no sum anymore, the time complexity is reduced to $O(n)$.
 Only $c_k (0)$ needs to be computed according to @equation_naive.
-In the implementation of @equation_decomposition further speedup can be achieved if $|Omega|$ is a
-power of two.
+In the implementation of @equation_decomposition potentially further speedup can be achieved if
+$|Omega|$ is a power of two.
 This is true e.g. for unambigous nucleotide sequences with $|Omega| = 4$.
 In this case the multiplication with $|Omega|$ can be substituted with a fast bit shift operation
 #todo[cite].
@@ -181,9 +183,9 @@ This can for example be achieved by choosing a appropriate #kmer hashing functio
 However, in the presented case a #kmer is already represented as integer, the #kmer code.
 Therefore, only an injective #footnote[one-to-one] function $f$ is required to obtain an integer
 defining the ordering for a #kmer code.
-Also I argue, that quality of randomness #todo[find better term] is less important than the speed
-of computation for the use case of alignments.
-A _linear congruential generator_ (LCG) with _full period_ is suitable in this scenario.
+Furthermore, for the use case of computing sequence alignments, the quality of randomness
+#todo[find better term] is arguably less important than the speed of computation.
+Hence, a _linear congruential generator_ (LCG) with _full period_ is suitable in this scenario.
 #todo[
   More elaboration.
   Usually used for generate next random value in series, here for random mapping.
