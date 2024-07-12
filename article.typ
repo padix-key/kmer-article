@@ -1,4 +1,4 @@
-#import "@preview/charged-ieee:0.1.0": ieee
+#import "ieee_template.typ": ieee
 #import "@preview/algo:0.3.3": algo, i, d, comment
 
 
@@ -14,7 +14,6 @@
 }
 
 #let seq(content) = [$mono(#content)$]
-
 
 #show: ieee.with(
   title: [A fast and simple approach to #kmer decomposition],
@@ -39,20 +38,9 @@
   index-terms: ("k-mers", "Alignment"),
   bibliography: bibliography("refs.bib"),
 )
-#show ref: it => {
-  // Provide custom reference for equations
-  if it.element != none and it.element.func() == math.equation {
-    link(it.target)[Equation~#it]
-  } else {
-    it
-  }
-}
-#show figure.caption: set align(left)
-#show figure.caption: set text(size: 8pt)
-#show figure: fig => pad(y: 15pt, fig)
 
-#set math.equation(supplement: [TEST])
-#set figure(placement: auto) // TODO: fix placement
+#show figure.caption: set align(left)
+
 
 = Introduction
 A common task in bioinformatics is finding similar regions between sequences.
@@ -66,7 +54,7 @@ The dynamic programming algorithms to obtain the guaranteed best alignment solut
 is not computationally feasible for most modern applications: the length and number of sequences is
 simply too large.
 
-To solve this problem heursitic approaches emerged. Many modern algorithms (see #todo(cite) as
+To solve this problem heuristic approaches emerged. Many modern algorithms (see #todo(cite) as
 examples) build upon the concept of finding exact matches of length $k$ between the sequences
 @Altschul1990.
 These subsequences of length $k$ are termed #kmers.
