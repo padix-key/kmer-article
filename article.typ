@@ -1,4 +1,5 @@
 #import "@preview/charged-ieee:0.1.0": ieee
+#import "@preview/algo:0.3.3": algo, i, d, comment
 
 
 #let kmer = box[$k$-mer]
@@ -38,7 +39,20 @@
   index-terms: ("k-mers", "Alignment"),
   bibliography: bibliography("refs.bib"),
 )
+#show ref: it => {
+  // Provide custom reference for equations
+  if it.element != none and it.element.func() == math.equation {
+    link(it.target)[Equation~#it]
+  } else {
+    it
+  }
+}
+#show figure.caption: set align(left)
+#show figure.caption: set text(size: 8pt)
+#show figure: fig => pad(y: 15pt, fig)
 
+#set math.equation(supplement: [TEST])
+#set figure(placement: auto) // TODO: fix placement
 
 = Introduction
 A common task in bioinformatics is finding similar regions between sequences.
@@ -102,14 +116,45 @@ Let the _sequence code_ be the symbol codes for all symbols in the sequence.
   Doing this encoding for all symbols in $s$ yields the sequence code $(3, 0, 3, 2, 1)$
 ]
 
-Note that this integer mapping of a symbol generalizes the definition of a sequence beyond simple
-text: If $Omega$ does contain other objects than characters, each enumeration of these objects
-can be considered a sequence.
-
 Specifically, in case that the sequence is represented as ASCII text
-#footnote[This is true for almost every sequence encountered in biology.]
-mapping a sequence to sequence code can be implemented using fast array access
-#todo[explain conversion with pseudocode].
+#footnote[This is true for almost every sequence type encountered in biology.]
+mapping a sequence $S$ to sequence code can be implemented using fast array access as described in @figure_encode.
+
+#figure(
+  algo(
+    title: [#smallcaps("Encode")],
+    parameters: ($S$,$Omega$),
+    comment-prefix: [#sym.triangle.stroked.r ],
+    indent-size: 15pt,
+    indent-guides: 1pt + gray,
+    row-gutter: 10pt,
+    column-gutter: 5pt,
+    inset: 5pt,
+  )[
+    $s_("illegal") <- |Omega|$ \
+    $m_("symbol"->"code") <- "repeat"(s_("illegal"), 256)$\
+
+    for $i$, $s$ in enumerate($Omega$): #i \
+      $m_("symbol"->"code")["as_ascii"(s)] <- i$ #d \
+
+    $C <- "repeat"(0, |S|)$ \
+    for $i$, $s$ in enumerate($S$): #i \
+      $C[i] <- m_("symbol"->"code")["as_ascii"(s)]$ #d \
+
+    return $C$
+  ],
+  caption: [
+    Sequence encoding into sequence code.
+    The input sequence $S$ is subject to alphabet $Omega$, which contains only ASCII-encoded
+    symbols.
+    As symbol codes are 0-based, the greatest symbol code is $|Omega| - 1$.
+    Hence, $s_("illegal") <- |Omega|$ can be used as marker value to check for symbols that are
+    included ib not in $Omega$.
+    The array $m_("symbol"->"code")$ can be indexed with the ASCII code of a symbol to obtain the
+    corresponding symbol code.
+    For symbols that are not part of $Omega$, $m_("symbol"->"code")$ would give $s_("illegal")$.
+  ],
+) <figure_encode>
 
 == #kmer representation
 The aim of the method presented in this article is to represent each #kmer unambigously as single
@@ -151,7 +196,7 @@ $ c_k (j+1)
   &= lr([ sum_(i=1)^(k-1) c(i+j) times |Omega|^(k-i)  ]) + c(k+j) |Omega|^(k-k) \
   &= lr([ sum_(i=2)^(k) c(i+j-1) times |Omega|^(k-i+1) ]) + c(k+j) \
   &= |Omega| lr([ sum_(i=2)^(k) c(i+j-1) times |Omega|^(k-i) ]) + c(k+j) \
-  // &= |Omega| lr([ lr([ sum_(i=1)^(k) c(i+j-1) times |Omega|^(k-i) ]) - c(j) |Omega|^(k-1) ]) \+ c(k+j) \
+  //&= |Omega| lr([ lr([ sum_(i=1)^(k) c(i+j-1) times |Omega|^(k-i) ]) - c(j) |Omega|^(k-1) ]) \+ c(k+j) \
   &= |Omega| lr([ c_k (j) - c(j) |Omega|^(k-1) ]) + c(k+j).
 $ <equation_decomposition>
 
@@ -200,8 +245,14 @@ $ f(x) = (a x + c) mod m $
 #figure(
   image("benchmark/benchmark.svg", width: 100%),
   caption: [
-    This is a caption.
-  ],
+    Run time of #kmer decomposition using different methods.
+    Decomposition was run on a sequence with length 1000.
+    // TODO: FIx bold
+    *naive*: Naive application of @equation_naive for each sequence position.
+    *fast*: Application of @equation_decomposition.
+    *bitshift*: Application of @equation_decomposition with bit shift instead of
+    multiplication.
+  ]
 ) <figure_benchmark>
 
 @figure_benchmark shows how the mentioned decomposition methods compare to each other.
@@ -214,5 +265,14 @@ If the implementing library already store sequences in their sequence code form,
 becomes faster that shown in the benchmark.
 
 = Conclusion
+
+Representing a sequence as array of integer, has a further advantage, besides facilitating #kmer
+decomposition, as it generalizes the definition of a sequence beyond simple text:
+If the alphabet $Omega$ does contain other objects than single characters as symbols, e.g. arbitrary
+strings or integers, each enumeration of these objects can be considered a sequence.
+This allows alphabets to contain more symbols than the 95 printable ASCII characters, which would
+allow for example to create and represent more fine-grained structural alphabets
+#todo[cite SA review].
+
 This code representation of sequences and #kmers as well as the fast decomposition method is
 implemented in the _Python_ bioinformatics library _Biotite_.
