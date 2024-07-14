@@ -54,11 +54,12 @@ The dynamic programming algorithms to obtain the guaranteed best alignment solut
 is not computationally feasible for most modern applications: the length and number of sequences is
 simply too large.
 
-To solve this problem heuristic approaches emerged. Many modern algorithms (see #todo(cite) as
-examples) build upon the concept of finding exact matches of length $k$ between the sequences
-@Altschul1990.
+To solve this problem heuristic approaches emerged. Many modern algorithms
+(see @Bray2016 @Steinegger2017 as examples) build upon the concept of finding exact matches of
+length $k$ between the sequences @Altschul1990.
 These subsequences of length $k$ are termed #kmers.
-The process of finding all overlapping #kmers in a sequence is called _k-mer decomposition_.
+The process of finding all overlapping #kmers in a sequence is commonly titled
+_k-mer decomposition_.
 
 #example[
   Take the sequences #seq[TATGC] and #seq[ATGG]:
@@ -84,8 +85,8 @@ This article puts the spotlight on #kmer decomposition itself: It presents an in
 hash of a #kmer and describes a fast algorithm that decomposes a sequence into these hash values
 in constant time with respect to $k$.
 Finally this paper proposes a simple way to give this #kmer hashes a pseudorandom ordering, a
-desirable property for certain #kmer based methods, such as _minimizers_ #todo(cite) and
-_syncmers_ #todo(cite).
+desirable property for certain #kmer based methods, such as _minimizers_ @Roberts2004 and
+_syncmers_ @Edgar2021.
 
 = Methods
 
@@ -106,7 +107,10 @@ Let the _sequence code_ be the symbol codes for all symbols in the sequence.
 
 Specifically, in case that the sequence is represented as ASCII text
 #footnote[This is true for almost every sequence type encountered in biology.]
-mapping a sequence $S$ to sequence code can be implemented using fast array access as described in @figure_encode.
+mapping a sequence $S$ to sequence code can be implemented using fast array access as described in
+@figure_encode, in contrast to employing a slower associative array
+#footnote[This container type is also termed _map_ or _dictionary_ depending on the programming
+language.].
 
 #figure(
   algo(
@@ -150,7 +154,7 @@ integer.
 Analogous to the symbol code, this integer will be called _#kmer code_.
 First, the #kmer is converted into its sequence code as explained above.
 Next, the length of $Omega$, written as $|Omega|$, is used as radix to compute the #kmer code $c_k$
-from the sequence code $c$ via #footnote[0-based indexing]
+from the sequence code $c$ via
 
 $ c_k = sum_(i=1)^k c(i-1) times |Omega|^(k-i). $ <equation_kmer_code>
 
@@ -202,7 +206,7 @@ In this case the multiplication with $|Omega|$ can be substituted with a fast bi
 
 == Pseudorandom ordering
 In some scenarios the order of #kmer codes is relevant.
-For example minimizers #todo(cite) select only the smallest #kmer from a window of #kmers.
+For example minimizers @Roberts2004 select only the smallest #kmer from a window of #kmers.
 This decreases the number of considered #kmers and in consequence improves the speed of finding
 #kmer matches between sequences.
 However, using the #kmer code directly to determine the ordering is not ideal:
@@ -229,13 +233,25 @@ $ f(x) = (a x + c) mod m $
 
 = Results and Discussion
 
-== Decomposition performance
+The presented decomposition methods were benchmarked for different #kmer lengths on a 1000~bp
+nucleotide sequence as shown in @figure_benchmark.
+The benchmark was run on a system with _Apple M3 Max_ processor \@ 4.05 GHz using an implementation
+written in _Rust_ (Supplementary File 1).
+As expected, the naive method scales linearly with $k$
+($T approx (1.05 + 0.37 k) thin mu s$, $R^2=0.9994$).
+In contrast, the fast decomposition method based on @equation_decomposition runs in constant time
+($T approx 1.63 thin mu s$).
+Suprisingly, replacing the multiplication with a bit shift operation resulted even in a slightly
+increased run time ($T approx 1.79 thin mu s$).
+As such potential optimization is hardware-related, this result may depend on the actual
+architecture and programming language.
+
 #figure(
   image("benchmark/benchmark.svg", width: 100%),
   caption: [
     Run time of #kmer decomposition using different methods.
     Decomposition was run on a sequence with length 1000.
-    // TODO: FIx bold
+    The displayed run time includes also the consersion into sequence code.
     *naive*: Naive application of @equation_naive for each sequence position.
     *fast*: Application of @equation_decomposition.
     *bitshift*: Application of @equation_decomposition with bit shift instead of
@@ -243,14 +259,16 @@ $ f(x) = (a x + c) mod m $
   ]
 ) <figure_benchmark>
 
-@figure_benchmark shows how the mentioned decomposition methods compare to each other.
+In summary the the fast decomposition method is already faster than the naive method for
+$k gt.eq 2$.
+The fast method is especially advantageous for algorithms that utilize long #kmers.
+For example, by default _Minimap~2_ @Li2018 uses $k=15$ and _Kallisto_ @Bray2016 uses $k=31$.
+For these examples, the fast decomposition method is $tilde.op #h(0cm) 4 #h(0cm) times$ and
+$tilde.op #h(0cm) 8 #h(0cm) times$ faster than the naive method, respectively.
 
-This makes the decomposition especially fast for methods that use long #kmers #todo[cite, kallisto].
-#todo[Name speedup at k=31]
-
-Note that the shown benchmark also include sequence encoding itself:
-If the implementing library already store sequences in their sequence code form, #kmer decomposition
-becomes faster that shown in the benchmark.
+Note that the implementation used for the benchmark also includes sequence encoding itself:
+If the implementing library already stores sequences in their sequence code form, #kmer
+decomposition becomes faster than shown in the benchmark.
 
 = Conclusion
 
@@ -260,7 +278,7 @@ If the alphabet $Omega$ does contain other objects than single characters as sym
 strings or integers, each enumeration of these objects can be considered a sequence.
 This allows alphabets to contain more symbols than the 95 printable ASCII characters, which would
 allow for example to create and represent more fine-grained structural alphabets
-#todo[cite SA review].
+@Brevern2000 @VanKempen2024 @Wang2008.
 
-This code representation of sequences and #kmers as well as the fast decomposition method is
-implemented in the _Python_ bioinformatics library _Biotite_.
+This code representation of sequences and #kmers as well as the fast decomposition method is also
+implemented in the _Python_ bioinformatics library _Biotite_ @Kunzmann2023.
