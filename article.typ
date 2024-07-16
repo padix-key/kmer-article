@@ -88,7 +88,7 @@ Finally this paper proposes a simple way to give this #kmer hashes a pseudorando
 desirable property for certain #kmer based methods, such as _minimizers_ @Roberts2004 and
 _syncmers_ @Edgar2021.
 
-= Methods
+= Algorithm
 
 == Sequence representation
 Each sequence is subject to an _alphabet_ $Omega$, that enumerates the symbols that are allowed in
@@ -204,6 +204,10 @@ This is true e.g. for unambigous nucleotide sequences with $|Omega| = 4$.
 In this case the multiplication with $|Omega|$ can be substituted with a fast bit shift operation
 #todo[cite].
 
+Note that @equation_decomposition only works for linear #kmers.
+Some algorithms in homology search use _spaced_ #kmers @Ma2002, which contains ignored positions.
+In this case @equation_naive can be still used.
+
 == Pseudorandom ordering
 In some scenarios the order of #kmer codes is relevant.
 For example minimizers @Roberts2004 select only the smallest #kmer from a window of #kmers.
@@ -213,23 +217,56 @@ However, using the #kmer code directly to determine the ordering is not ideal:
 Especially, if the symbols in $Omega$ are ordered alphabetically, the order in $Omega_k$ is
 lexicographic.
 This means that #kmers with low complexity such as #seq[AAAAA...] would always be the smallest #kmer
-leading to more spurious than significant #kmer matches downstream #todo(cite).
+leading to more spurious than significant #kmer matches downstream @Roberts2004.
 A simple way to remedy this behavior is to apply a pseudorandom ordering to the #kmers #todo(cite).
+This can for example be achieved by choosing a appropriate #kmer hashing function
+#todo[cite review with hash function].
 
-This can for example be achieved by choosing a appropriate #kmer hashing function.
-However, in the presented case a #kmer is already represented as integer, the #kmer code.
-Therefore, only an injective #footnote[one-to-one] function $f$ is required to obtain an integer
-defining the ordering for a #kmer code.
+However, in the presented case a #kmer is already represented as integer: the #kmer code.
+Therefore, only an injective #footnote[one-to-one] function $sigma(c_k)$ is required to obtain an
+integer defining the ordering for a #kmer $c_k$, i.e. the #kmer code $p$ is defined to be smaller
+than $q$ if $sigma(p) lt sigma(q)$.
 Furthermore, for the use case of computing sequence alignments, the quality of randomness
-#todo[find better term] is arguably less important than the speed of computation.
-Hence, a _linear congruential generator_ (LCG) with _full period_ is suitable in this scenario.
-#todo[
-  More elaboration.
-  Usually used for generate next random value in series, here for random mapping.
-  Fast implementation using bit truncation.
-]
+is arguably less important than the speed of computation.
+Hence, a _linear congruential generator_ (LCG) is appealing in this case.
+It predicts the next random number in a sequence via
 
-$ f(x) = (a x + c) mod m $
+$ x_(n+1) = (a x_n + b) mod m $ <equation_lcg>
+
+In a LGC with _full period_ the sequence does only repeat after $m$ elements.
+To achieve the full period attention has to be paid to the choice of $a$ and $m$.
+Furthermore, $b$ and $M$ need to be coprime, which can be trivially achieved by setting $b=1$
+@Tezuka1995.
+
+For the purpose of #kmer ordering, the LCG should be used to map a #kmer code $c_k$ to a unique
+pseudorandom value $sigma(c_k)$ that defines the #kmer ordering.
+Thus one can employ @equation_lcg to define
+
+$ sigma(c_k) = (a c_k + b) mod m. $ <equation_lcg_kmer>
+
+$sigma(c_k)$ is only injective, if each $c_k$ is mapped to a unique value.
+To ensure this property, an LGC with full period is used.
+If one represents #kmer codes as 64-bit integers
+#footnote[$|Omega|^k$ quickly leads to an combinatorial explosion of $|Omega_k|$, making 64-bit integers necessary.]
+$m = 2^(64)$ is required.
+When carefully implemented, the modulo computation in @equation_lcg is free due to automatic bit
+truncation.
+For $a$ one can resort to published multipliers @Steele2021 that ensure both, full periodicity and
+good randomness for the chosen $m$.
+As example the following combination fulfills the requirements:
+
+$ a = "d1342543de82ef95"_16 \
+  b = 1 \
+  m = 2^64
+$
+
+#example[
+  Take the nucleotide $3$-mers #seq[ATG] and #seq[TGG] with corresponding #kmer codes $p=14$ and
+  $q=58$, respectively.
+  $sigma(p) = 8131822755183663655$ and $sigma(q) = 7336488451890104259$, i.e $sigma(p) gt sigma(q)$.
+  Thus, by the newly defined order, the $3$-mer #seq[TGG] is smaller than #seq[ATG] in contrast
+  to their lexicographic order.
+]
 
 = Results and Discussion
 
