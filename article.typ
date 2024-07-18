@@ -40,6 +40,8 @@
 )
 
 #show figure.caption: set align(left)
+// Forbid line breaks in equations
+#show math.equation: it => box[#it]
 
 
 = Introduction
@@ -87,6 +89,9 @@ in constant time with respect to $k$.
 Finally this paper proposes a simple way to give this #kmer hashes a pseudorandom ordering, a
 desirable property for certain #kmer based methods, such as _minimizers_ @Roberts2004 and
 _syncmers_ @Edgar2021.
+
+The techniques presented in this article are also implemented in the _Python_ bioinformatics library
+_Biotite_ @Kunzmann2023.
 
 = Algorithm
 
@@ -171,6 +176,12 @@ As $Omega_k$ contains every combination of $|Omega|$ symbols in each of its $k$ 
 the length of such alphabet is
 
 $ |Omega_k| = |Omega|^k. $
+
+The sequence code $c$ can also be restored from the #kmer code $c_k$ via
+
+$ c(i) = (c_k div |Omega|^(k-i)) mod |Omega|, $ <equation_kmer_decode>
+
+where '$div$' denotes integer division.
 
 == #kmer decomposition
 Performing #kmer decomposition of a seqeunce into #kmer codes requires application of
@@ -296,8 +307,8 @@ architecture and programming language.
   ]
 ) <figure_benchmark>
 
-In summary the the fast decomposition method is already faster than the naive method for
-$k gt.eq 2$.
+In summary the fast decomposition method is already faster than the naive method for
+$k gt.eq 2$, i.e. for any practically relevant #kmer length.
 The fast method is especially advantageous for algorithms that utilize long #kmers.
 For example, by default _Minimap~2_ @Li2018 uses $k=15$ and _Kallisto_ @Bray2016 uses $k=31$.
 For these examples, the fast decomposition method is $tilde.op #h(0cm) 4 #h(0cm) times$ and
@@ -309,13 +320,25 @@ decomposition becomes faster than shown in the benchmark.
 
 = Conclusion
 
-Representing a sequence as array of integer, has a further advantage, besides facilitating #kmer
-decomposition, as it generalizes the definition of a sequence beyond simple text:
+This article advocates representing #kmers as integer in memory for mainly two reasons:
+First, it reduces the time complexity of #kmer decomposition to $O(n)$.
+Since modern sequence alignment algorithms strive to be as fast as possible, this performance gain
+may pose a crucial advantage.
+Second, many current application of #kmers already implicitly rely on conversion of #kmers
+into an integer by means of hashing.
+Among other applications, this includes
+
+- comparison of two sets of #kmers to approximate sequence identity (e.g. @Edgar2004),
+- #todo[another example] and
+- efficiently finding match positions between two sequences (e.g. @Steinegger2017).
+
+Already having #kmers as unique integers at hand removes the need for hashing them and thus may
+further speeds up such applications.
+
+In addition, representing a sequence as array of integers, has the advantage of generalizing the
+definition of a sequence beyond simple text:
 If the alphabet $Omega$ does contain other objects than single characters as symbols, e.g. arbitrary
 strings or integers, each enumeration of these objects can be considered a sequence.
 This allows alphabets to contain more symbols than the 95 printable ASCII characters, which would
-allow for example to create and represent more fine-grained structural alphabets
-@Brevern2000 @VanKempen2024 @Wang2008.
-
-This code representation of sequences and #kmers as well as the fast decomposition method is also
-implemented in the _Python_ bioinformatics library _Biotite_ @Kunzmann2023.
+enable, for example, creating and representing more fine-grained structural alphabets
+@Brevern2000 @VanKempen2024 @Wang2008 in the future.
