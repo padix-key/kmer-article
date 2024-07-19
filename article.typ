@@ -47,9 +47,9 @@
 = Introduction
 A common task in bioinformatics is finding similar regions between sequences.
 In one scenario finding homologs of a sequence in another genome may reveal common functionalities
-between them #todo(cite).
+between them.
 In another scenario the reads obtained from sequencing need to be mapped to a position on a
-reference genome to assemble a genome or quantify the number of transcripts #todo(cite).
+reference genome to assemble a genome or quantify the number of transcripts.
 A _similar region_ can be formalized as so called _alignment_:
 It specifies which position in one sequence corresponds to a position the the other sequence.
 The dynamic programming algorithms to obtain the guaranteed best alignment solution @Needleman1970
@@ -155,7 +155,7 @@ language.].
 
 == #kmer representation
 The aim of the method presented in this article is to represent each #kmer unambigously as single
-integer.
+integer - the hash value.
 Analogous to the symbol code, this integer will be called _#kmer code_.
 First, the #kmer is converted into its sequence code as explained above.
 Next, the length of $Omega$, written as $|Omega|$, is used as radix to compute the #kmer code $c_k$
@@ -179,7 +179,7 @@ $ |Omega_k| = |Omega|^k. $
 
 The sequence code $c$ can also be restored from the #kmer code $c_k$ via
 
-$ c(i) = (c_k div |Omega|^(k-i)) mod |Omega|, $ <equation_kmer_decode>
+$ c(i) = (c_k div |Omega|^(k-i-1)) mod |Omega|, $ <equation_kmer_decode>
 
 where '$div$' denotes integer division.
 
@@ -208,6 +208,7 @@ is removed, the remainder is shifted to the left and the symbol code of the ente
 added.
 
 As @equation_decomposition contains no sum anymore, the time complexity is reduced to $O(n)$.
+Instead the next code $c_k (j+1)$ is computed from the previos code $c_k (j)$.
 Only $c_k (0)$ needs to be computed according to @equation_naive.
 In the implementation of @equation_decomposition potentially further speedup can be achieved if
 $|Omega|$ is a power of two.
@@ -227,11 +228,10 @@ This decreases the number of considered #kmers and in consequence improves the s
 However, using the #kmer code directly to determine the ordering is not ideal:
 Especially, if the symbols in $Omega$ are ordered alphabetically, the order in $Omega_k$ is
 lexicographic.
-This means that #kmers with low complexity such as #seq[AAAAA...] would always be the smallest #kmer
+This means that #kmers with low complexity such as #seq[AAA...] would always be the smallest #kmer
 leading to more spurious than significant #kmer matches downstream @Roberts2004.
-A simple way to remedy this behavior is to apply a pseudorandom ordering to the #kmers #todo(cite).
-This can for example be achieved by choosing a appropriate #kmer hashing function
-#todo[cite review with hash function].
+A simple way to remedy this behavior is to apply a pseudorandom ordering to the #kmers, which can
+for example be achieved by choosing an appropriate #kmer hashing function @Zheng2023.
 
 However, in the presented case a #kmer is already represented as integer: the #kmer code.
 Therefore, only an injective #footnote[one-to-one] function $sigma(c_k)$ is required to obtain an
@@ -249,7 +249,7 @@ To achieve the full period attention has to be paid to the choice of $a$ and $m$
 Furthermore, $b$ and $M$ need to be coprime, which can be trivially achieved by setting $b=1$
 @Tezuka1995.
 
-For the purpose of #kmer ordering, the LCG should be used to map a #kmer code $c_k$ to a unique
+For the purpose of #kmer ordering, the LCG should be utilized to map a #kmer code $c_k$ to a unique
 pseudorandom value $sigma(c_k)$ that defines the #kmer ordering.
 Thus one can employ @equation_lcg to define
 
@@ -257,9 +257,9 @@ $ sigma(c_k) = (a c_k + b) mod m. $ <equation_lcg_kmer>
 
 $sigma(c_k)$ is only injective, if each $c_k$ is mapped to a unique value.
 To ensure this property, an LGC with full period is used.
-If one represents #kmer codes as 64-bit integers
+If one handles as up to $2^64$ #kmer codes
 #footnote[$|Omega|^k$ quickly leads to an combinatorial explosion of $|Omega_k|$, making 64-bit integers necessary.]
-$m = 2^(64)$ is required.
+$m = 2^(64)$ is sufficient.
 When carefully implemented, the modulo computation in @equation_lcg is free due to automatic bit
 truncation.
 For $a$ one can resort to published multipliers @Steele2021 that ensure both, full periodicity and
@@ -269,12 +269,14 @@ As example the following combination fulfills the requirements:
 $ a = "d1342543de82ef95"_16 \
   b = 1 \
   m = 2^64
-$
+$ <equation_params>
 
 #example[
   Take the nucleotide $3$-mers #seq[ATG] and #seq[TGG] with corresponding #kmer codes $p=14$ and
   $q=58$, respectively.
-  $sigma(p) = 8131822755183663655$ and $sigma(q) = 7336488451890104259$, i.e $sigma(p) gt sigma(q)$.
+  $sigma(p) = 8131822755183663655$ and $sigma(q) = 7336488451890104259$, with parameters taken from
+  @equation_params.
+  This means $sigma(p) gt sigma(q)$.
   Thus, by the newly defined order, the $3$-mer #seq[TGG] is smaller than #seq[ATG] in contrast
   to their lexicographic order.
 ]
@@ -320,13 +322,14 @@ This article advocates representing #kmers as integer in memory for mainly two r
 First, it reduces the time complexity of #kmer decomposition to $O(n)$.
 Since modern sequence alignment algorithms strive to be as fast as possible, this performance gain
 may pose a crucial advantage.
-Second, many current application of #kmers already implicitly rely on conversion of #kmers
+Second, many current application of #kmers already at least implicitly rely on conversion of #kmers
 into an integer by means of hashing.
 Among other applications, this includes
 
 - comparison of two sets of #kmers to approximate sequence identity (e.g. @Edgar2004),
-- #todo[another example] and
-- efficiently finding match positions between two sequences (e.g. @Steinegger2017).
+- efficiently finding match positions between two sequences using a #kmer lookup table
+  (e.g. @Steinegger2017) and
+- map reads to genes using pseudoalignment (e.g. @Bray2016).
 
 Already having #kmers as unique integers at hand removes the need for hashing them and thus may
 further speeds up such applications.
