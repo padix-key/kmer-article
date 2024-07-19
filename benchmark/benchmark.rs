@@ -117,41 +117,6 @@ impl KmerAlphabet {
 
         Ok(kmers)
     }
-
-    fn decompose_bitshift(&self, sequence: &[u8]) -> Result<Vec<usize>, String> {
-        if self.alphabet.size() != 4 {
-            return Err(String::from("Bit shift is only implemented for alphabets of size 4"))
-        }
-
-        let seq_code = self.alphabet.encode(sequence)?;
-        let mut kmers: Vec<usize> = Vec::with_capacity(sequence.len() - self.k + 1);
-        let end_radix_multiplier: usize = self.alphabet.size().pow((self.k - 1) as u32);
-
-        // Compute initial kmer code using the naive way
-        let mut c: usize = 0;
-        for j in 0..self.k {
-            c += seq_code[j] as usize * self.radix_multipliers[j];
-        }
-        kmers.push(c);
-
-        // Compute subsequent kmer codes using the information from the previous one
-        let mut prev_kmer: usize = kmers[0];
-        for i in 1..kmers.capacity() {
-            let kmer: usize =
-                (
-                    // Remove first symbol
-                    (prev_kmer - seq_code[i - 1] as usize * end_radix_multiplier)
-                    // Shift k-mer to left
-                    << 2
-                )
-                // Add new symbol
-                + seq_code[i + self.k - 1] as usize;
-            kmers.push(kmer);
-            prev_kmer = kmer;
-        }
-
-        Ok(kmers)
-    }
 }
 
 
@@ -186,7 +151,6 @@ fn main() {
     let mut k_list: Vec<usize> = Vec::new();
     let mut naive_time_ns_list: Vec<usize> = Vec::new();
     let mut fast_time_ns_list: Vec<usize> = Vec::new();
-    let mut bitshift_time_ns_list: Vec<usize> = Vec::new();
     for k in 1..=MAX_K {
         let kmer_alphabet = KmerAlphabet::new(alphabet.clone(), k);
 
@@ -197,9 +161,6 @@ fn main() {
         fast_time_ns_list.push(
             benchmark_decomposition(|seq| kmer_alphabet.decompose_fast(seq), &sequence, REP)
         );
-        bitshift_time_ns_list.push(
-            benchmark_decomposition(|seq| kmer_alphabet.decompose_bitshift(seq), &sequence, REP)
-        );
     }
 
     // Prepare JSON
@@ -207,7 +168,6 @@ fn main() {
     json_content.insert(String::from("k"), k_list);
     json_content.insert(String::from("naive"), naive_time_ns_list);
     json_content.insert(String::from("fast"), fast_time_ns_list);
-    json_content.insert(String::from("bitshift"), bitshift_time_ns_list);
     // Write JSON
     let mut file = File::create("benchmark.json").unwrap();
     file.write_all(&json::stringify_pretty(json_content, 4).as_bytes()).unwrap()

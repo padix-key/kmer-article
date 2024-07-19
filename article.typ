@@ -212,8 +212,8 @@ Only $c_k (0)$ needs to be computed according to @equation_naive.
 In the implementation of @equation_decomposition potentially further speedup can be achieved if
 $|Omega|$ is a power of two.
 This is true e.g. for unambigous nucleotide sequences with $|Omega| = 4$.
-In this case the multiplication with $|Omega|$ can be substituted with a fast bit shift operation
-#todo[cite].
+In this case the compiler may substitute this multiplication with a fast bit shift operation
+depending on the hardware architecture.
 
 Note that @equation_decomposition only works for linear #kmers.
 Some algorithms in homology search use _spaced_ #kmers @Ma2002, which contains ignored positions.
@@ -286,11 +286,9 @@ nucleotide sequence as shown in @figure_benchmark.
 The benchmark was run on a system with _Apple M3 Max_ processor \@ 4.05 GHz using an implementation
 written in _Rust_ (Supplementary File 1).
 As expected, the naive method scales linearly with $k$
-($T approx (1.05 + 0.37 k) thin mu s$, $R^2=0.9994$).
+($T approx (0.97 + 0.36 k) thin mu s$, $R^2=0.9997$).
 In contrast, the fast decomposition method based on @equation_decomposition runs in constant time
-($T approx 1.63 thin mu s$).
-Suprisingly, replacing the multiplication with a bit shift operation resulted even in a slightly
-increased run time ($T approx 1.79 thin mu s$).
+($T approx 1.55 thin mu s$).
 As such potential optimization is hardware-related, this result may depend on the actual
 architecture and programming language.
 
@@ -302,8 +300,6 @@ architecture and programming language.
     The displayed run time includes also the consersion into sequence code.
     *naive*: Naive application of @equation_naive for each sequence position.
     *fast*: Application of @equation_decomposition.
-    *bitshift*: Application of @equation_decomposition with bit shift instead of
-    multiplication.
   ]
 ) <figure_benchmark>
 
