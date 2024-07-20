@@ -7,6 +7,19 @@ use json;
 use rand::prelude::*;
 use rand_chacha::rand_core::SeedableRng;
 use rand_chacha::ChaCha8Rng;
+use boomphf::*;
+
+
+fn get_kmer_from_code(alphabet: &Alphabet, k: usize, code: usize) -> Vec<u8> {
+    let mut kmer: Vec<u8> = Vec::with_capacity(k);
+
+    for i in 0..k {
+        let symbol_code = code / alphabet.size().pow((k-i-1) as u32) % alphabet.size();
+        let symbol = alphabet.symbols[symbol_code];
+        kmer.push(symbol);
+    }
+    kmer
+}
 
 
 #[derive(Debug, Clone)]
@@ -60,7 +73,8 @@ impl Alphabet {
 struct KmerAlphabet {
     alphabet: Alphabet,
     k: usize,
-    radix_multipliers: Vec<usize>
+    radix_multipliers: Vec<usize>,
+    bbhash: Mphf<Vec<u8>>,
 }
 
 impl KmerAlphabet {
@@ -69,7 +83,13 @@ impl KmerAlphabet {
         for i in 0..k {
             radix_multipliers.insert(0, alphabet.size().pow(i as u32));
         }
-        KmerAlphabet {alphabet, k, radix_multipliers}
+
+        let all_symbols: Vec<Vec<u8>> = (0..alphabet.size().pow(k as u32))
+                                        .map(|c| get_kmer_from_code(&alphabet, k, c))
+                                        .collect();
+        let bbhash = Mphf::new(GAMMA, &all_symbols);
+
+        KmerAlphabet {alphabet, k, radix_multipliers, bbhash}
     }
 
     fn decompose_naive(&self, sequence: &[u8]) -> Result<Vec<usize>, String> {
@@ -117,12 +137,25 @@ impl KmerAlphabet {
 
         Ok(kmers)
     }
+
+    fn decompose_bbhash(&self, sequence: &[u8]) -> Result<Vec<usize>, String> {
+        let mut kmers: Vec<usize> = Vec::with_capacity(sequence.len() - self.k + 1);
+
+        for i in 0..kmers.capacity() {
+            let kmer = &sequence[i..i+self.k].to_vec();
+            let kmer_code = self.bbhash.hash(&kmer).try_into().unwrap();
+            kmers.push(kmer_code);
+        }
+
+        Ok(kmers)
+    }
 }
 
 
 const REP: usize = 100_000;
 const SEQ_LEN: usize = 1000;
-const MAX_K: usize = 32;
+const MAX_K: usize = 14;
+const GAMMA: f64 = 2.0;
 
 
 fn benchmark_decomposition<F>(decompose_func: F, sequence: &[u8], repetitions: usize) -> usize
@@ -151,6 +184,7 @@ fn main() {
     let mut k_list: Vec<usize> = Vec::new();
     let mut naive_time_ns_list: Vec<usize> = Vec::new();
     let mut fast_time_ns_list: Vec<usize> = Vec::new();
+    let mut bbhash_time_ns_list: Vec<usize> = Vec::new();
     for k in 1..=MAX_K {
         let kmer_alphabet = KmerAlphabet::new(alphabet.clone(), k);
 
@@ -161,6 +195,9 @@ fn main() {
         fast_time_ns_list.push(
             benchmark_decomposition(|seq| kmer_alphabet.decompose_fast(seq), &sequence, REP)
         );
+        bbhash_time_ns_list.push(
+            benchmark_decomposition(|seq| kmer_alphabet.decompose_bbhash(seq), &sequence, REP)
+        );
     }
 
     // Prepare JSON
@@ -168,6 +205,7 @@ fn main() {
     json_content.insert(String::from("k"), k_list);
     json_content.insert(String::from("naive"), naive_time_ns_list);
     json_content.insert(String::from("fast"), fast_time_ns_list);
+    json_content.insert(String::from("bbhash"), bbhash_time_ns_list);
     // Write JSON
     let mut file = File::create("benchmark.json").unwrap();
     file.write_all(&json::stringify_pretty(json_content, 4).as_bytes()).unwrap()

@@ -41,13 +41,15 @@ with open("benchmark.json") as file:
 k = np.array(runtimes["k"])
 runtime_naive    = np.array(runtimes["naive"]   ) * 1e-3
 runtime_fast     = np.array(runtimes["fast"]    ) * 1e-3
+runtime_bbhash   = np.array(runtimes["BBHash"]  ) * 1e-3
 
 
 fig, ax = plt.subplots(figsize=(6.0, 4.0), constrained_layout=True)
 
 fits = {}
-plot_and_fit(fits, ax, k, runtime_naive,    "naive",    "o", COLORS["gray"], COLORS["lightgray"])
-plot_and_fit(fits, ax, k, runtime_fast,     "fast",     "d", COLORS["red"], COLORS["lightred"])
+plot_and_fit(fits, ax, k, runtime_naive,  "naive",  "o", COLORS["gray"], COLORS["lightgray"])
+plot_and_fit(fits, ax, k, runtime_fast,   "fast",   "d", COLORS["red"],  COLORS["lightred"])
+plot_and_fit(fits, ax, k, runtime_bbhash, "bbhash", "s", COLORS["blue"], COLORS["lightblue"])
 
 ax.set_xlim(left=0)
 ax.set_ylim(bottom=0)

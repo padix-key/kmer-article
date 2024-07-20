@@ -80,13 +80,18 @@ _hash table_ for fast lookup of the positions where a given #kmer appears.
 This requires #kmer _hashing_, i.e. mapping a #kmer to an integer, the _hash_.
 If this mapping is unambiguous, i.e. two different #kmers are guaranteed to get different
 integers assigned, it is called _perfect hashing_.
+If for $n$ possible different #kmers the hash values are in the range $0$ to $n-1$, the hash is
+called _minimal perfect hash_.
+This is a desirable property, as it allows to implement the _hash table_ as array of size $n$.
 
 Although #kmer decomposition is the fundament of many modern alignment tools, most literature
 about their underlying algorithms focus on how the #kmers are used to find the alignment.
-This article puts the spotlight on #kmer decomposition itself: It presents an intuitive perfect
-hash of a #kmer and describes a fast algorithm that decomposes a sequence into these hash values
-in constant time with respect to $k$.
-Finally this paper proposes a simple way to give this #kmer hashes a pseudorandom ordering, a
+This article puts the spotlight on #kmer decomposition itself:
+It presents an intuitive integer representation of a #kmer, which at the same time acts as
+minimal perfect hash.
+This is accompanied by a _minimal perfect hash function_ (MPHF) that decomposes a sequence into
+these hash values in constant time with respect to $k$.
+Finally this paper proposes a simple way to give these #kmer hashes a pseudorandom ordering, a
 desirable property for certain #kmer based methods, such as _minimizers_ @Roberts2004 and
 _syncmers_ @Edgar2021.
 
@@ -283,6 +288,8 @@ $ <equation_params>
 
 = Results and Discussion
 
+== Decomposition performance
+#todo[Update benchmark values]
 The presented decomposition methods were benchmarked for different #kmer lengths on a 1000~bp
 nucleotide sequence as shown in @figure_benchmark.
 The benchmark was run on a system with _Apple M3 Max_ processor \@ 4.05 GHz using an implementation
@@ -315,6 +322,40 @@ $tilde.op #h(0cm) 8 #h(0cm) times$ faster than the naive method, respectively.
 Note that the implementation used for the benchmark also includes sequence encoding itself:
 If the implementing library already stores sequences in their sequence code form, #kmer
 decomposition becomes faster than shown in the benchmark.
+
+== The #kmer code as minimal perfect hash
+In the framework of hashing the presented #kmer decomposition function @equation_decomposition can
+be seen as MPHF:
+
+- It is _perfect_ as two different #kmers always get different #kmer codes.
+- It is _minimal_ as the #kmer codes range from $0$ to $|Omega_k| - 1$.
+
+However, unlike other MPHF (e.g. _BBhash_ @Limasset2017), this MPHF produces hash values,
+i.e. #kmer codes, with the same lexicographic order as the input #kmers.
+Hashes with a pseudorandom ordering can be obtained by applying a LCG according to
+@equation_lcg_kmer to the #kmer code.
+The resulting values are not minimal anymore though, as they are not within $0$ and $|Omega_k| - 1$,
+but they range between $0$ and the LCG period $m - 1$.
+
+I argue that this tradeoff is can easily remidied by separation of concerns in the implementation:
+For building a _hash_table_ minimal perfect hashes are desirable, but random order is not required
+though.
+Hence, the original #kmer code can be used as keys here.
+On the other hand when requiring a random order to select the minimizer from #kmer codes
+@Roberts2004, for example, one can use @equation_lcg_kmer to obtain the order only.
+Downstream the original #kmer codes can be used again.
+
+Apart from its simplicity, the advantage the #kmer decomposition method presented in this article
+over general purpose MPHF such as _BBhash_ is that it leverages the fact that the objects to be
+hashed are simple enumerable #kmers.
+Hence, the construction of this MPHF is almost free. The only information required is $Omega$, which
+contains usually only a few handful of symbols, and $k$.
+There is no costly construction time of the MPHF and its storage requirements are minimal,
+in contrast to general purpose MPHF @Fredman1984.
+Furthermore, the more sophisticated computations of such MPHF also require more computation time:
+In the presented benchmark, a _Rust_ implementation of _BBhash_ @BBHashRust required
+$tilde.op #h(0cm) 20 #h(0cm) times$ longer than the fast method based on @equation_decomposition,
+even for $k = 1$ ($T approx (30.82 + 1.49 k) thin mu s$, $R^2=0.83$).
 
 = Conclusion
 
