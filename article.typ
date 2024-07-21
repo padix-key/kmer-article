@@ -4,6 +4,7 @@
 
 #let kmer = box[$k$-mer]
 #let kmers = box[$k$-mers]
+#let kfy(content) = math.attach(content, tl: "k")
 
 #let todo(msg) = {
   [#text(fill: red, weight: "bold", size: 10pt)[TODO #msg]]
@@ -119,7 +120,7 @@ Let the _sequence code_ be the symbol codes for all symbols in the sequence.
 ]
 
 Specifically, in case that the sequence is represented as ASCII text
-#footnote[This is true for almost every sequence type encountered in biology.]
+#footnote[This is true for almost every sequence type encountered in biology.],
 mapping a sequence $S$ to sequence code can be implemented using fast array access as described in
 @figure_encode, in contrast to employing a slower associative array
 #footnote[This container type is also termed _map_ or _dictionary_ depending on the programming
@@ -163,31 +164,32 @@ language.].
 
 == #kmer representation
 The aim of the method presented in this article is to represent each #kmer unambiguously as single
-integer - the hash value.
+integer, that can be used as hash value.
 Analogous to the symbol code, this integer will be called _#kmer code_.
 First, the #kmer is converted into its sequence code as explained above.
-Next, the length of $Omega$, denoted by $|Omega|$, is used as radix to compute the #kmer code $c_k$
-from the sequence code $c$ via
+Next, the length of $Omega$, denoted by $|Omega|$, is used as radix to compute the #kmer code
+$kfy(c)$ from the sequence code $C$ via
 
-$ c_k = sum_(i=1)^k c(i-1) times |Omega|^(k-i). $ <equation_kmer_code>
+$ kfy(c) = sum_(i=1)^k c_(i-1) times |Omega|^(k-i). $ <equation_kmer_code>
 
 #example[
   Take the $3$-mer #seq[ATG] that uses again $Omega = (mono("A"), mono("C"), mono("G"), mono("T"))$
   as base alphabet:
   The sequence code of this #kmer is $(0, 3, 2)$.
-  The corresponding #kmer code calculates as $c_k = 0 times 4^2 + 3 times 4^1 + 2 times 4^0 = 14$.
+  The corresponding #kmer code calculates as
+  $kfy(c) = 0 times 4^2 + 3 times 4^1 + 2 times 4^0 = 14$.
 ]
 
-Note that $c_k$ can be again envisioned as element of an alphabet $Omega_k$ that enumerates all
-possible #kmers.
-As $Omega_k$ contains every combination of $|Omega|$ symbols in each of its $k$ positions,
+Note that $kfy(c)$ can be again envisioned as element of an alphabet $kfy(Omega)$ that enumerates
+all possible #kmers.
+As $kfy(Omega)$ contains every combination of $|Omega|$ symbols in each of its $k$ positions,
 the length of such alphabet is
 
-$ |Omega_k| = |Omega|^k. $
+$ |kfy(Omega)| = |Omega|^k. $
 
-The sequence code $c$ can also be restored from the #kmer code $c_k$ via
+$C$ can also be restored from the #kmer code $kfy(c)$ via
 
-$ c(i) = (c_k div |Omega|^(k-i-1)) mod |Omega|, $ <equation_kmer_decode>
+$ c_i = (kfy(c) div |Omega|^(k-i-1)) mod |Omega|, $ <equation_kmer_decode>
 
 where '$div$' denotes integer division.
 
@@ -195,20 +197,20 @@ where '$div$' denotes integer division.
 Performing #kmer decomposition of a sequence into #kmer codes requires application of
 @equation_kmer_code for each overlapping #kmer. Thus,
 
-$ c_k (j) = sum_(i=1)^k c(i+j-1) times |Omega|^(k-i), $ <equation_naive>
+$ kfy(c)_j = sum_(i=1)^k c_(i+j-1) times |Omega|^(k-i), $ <equation_naive>
 
 where $j$ defines the 0-based sequence position where the #kmer starts.
 A naive implementation of this formula has a time complexity of $O(n k)$, where $n$ is the length of
 the sequence.
 However, it ignores the relation between two consecutive #kmer codes:
 
-$ c_k (j+1)
-  &= sum_(i=1)^k c(i+j) times |Omega|^(k-i) \
-  &= lr([ sum_(i=1)^(k-1) c(i+j) times |Omega|^(k-i)  ]) + c(k+j) |Omega|^(k-k) \
-  &= lr([ sum_(i=2)^(k) c(i+j-1) times |Omega|^(k-i+1) ]) + c(k+j) \
-  &= |Omega| lr([ sum_(i=2)^(k) c(i+j-1) times |Omega|^(k-i) ]) + c(k+j) \
+$ kfy(c)_(j+1)
+  &= sum_(i=1)^k c_(i+j) times |Omega|^(k-i) \
+  &= lr(( sum_(i=1)^(k-1) c_(i+j) times |Omega|^(k-i)  )) + c_(k+j) |Omega|^(k-k) \
+  &= lr(( sum_(i=2)^(k) c_(i+j-1) times |Omega|^(k-i+1) )) + c_(k+j) \
+  &= |Omega| lr(( sum_(i=2)^(k) c_(i+j-1) times |Omega|^(k-i) )) + c_(k+j) \
   //&= |Omega| lr([ lr([ sum_(i=1)^(k) c(i+j-1) times |Omega|^(k-i) ]) - c(j) |Omega|^(k-1) ]) \+ c(k+j) \
-  &= |Omega| lr([ c_k (j) - c(j) |Omega|^(k-1) ]) + c(k+j).
+  &= |Omega| lr(( kfy(c)_(j) - c_(j) |Omega|^(k-1) )) + c_(k+j).
 $ <equation_decomposition>
 
 Intuitively, the #kmer code of the previous #kmer is taken, the symbol code of its first symbol
@@ -216,8 +218,8 @@ is removed, the remainder is shifted to the left and the symbol code of the ente
 added.
 
 As @equation_decomposition contains no sum anymore, the time complexity is reduced to $O(n)$.
-Instead the next code $c_k (j+1)$ is computed from the previous code $c_k (j)$.
-Only $c_k (0)$ needs to be computed according to @equation_naive.
+Instead the next code $kfy(c)_(j+1)$ is computed from the previous code $kfy(c)_(j)$.
+Only $kfy(c)_(0)$ needs to be computed according to @equation_naive.
 In the implementation of @equation_decomposition potentially further speedup can be achieved if
 $|Omega|$ is a power of two.
 This is true e.g. for unambiguous nucleotide sequences with $|Omega| = 4$.
@@ -234,7 +236,7 @@ For example minimizers @Roberts2004 select only the smallest #kmer from a window
 This decreases the number of considered #kmers and in consequence improves the speed of finding
 #kmer matches between sequences.
 However, using the #kmer code directly to determine the ordering is not ideal:
-Especially, if the symbols in $Omega$ are ordered alphabetically, the order in $Omega_k$ is
+Especially, if the symbols in $Omega$ are ordered alphabetically, the order in $kfy(Omega)$ is
 lexicographic.
 This means that #kmers with low complexity such as #seq[AAA...] would always be the smallest #kmer
 leading to more spurious than significant #kmer matches downstream @Roberts2004.
@@ -242,8 +244,8 @@ A simple way to remedy this behavior is to apply a pseudorandom ordering to the 
 for example be achieved by choosing an appropriate #kmer hashing function @Zheng2023.
 
 However, in the presented case a #kmer is already represented as integer: the #kmer code.
-Therefore, only an injective #footnote[one-to-one] function $sigma(c_k)$ is required to obtain an
-integer defining the ordering for a #kmer $c_k$, i.e. the #kmer code $p$ is defined to be smaller
+Therefore, only an injective #footnote[one-to-one] function $sigma(kfy(c))$ is required to obtain an
+integer defining the ordering for a #kmer $kfy(c)$, i.e. the #kmer code $p$ is defined to be smaller
 than $q$ if $sigma(p) lt sigma(q)$.
 Furthermore, for the use case of computing sequence alignments, the quality of randomness
 is arguably less important than the speed of computation.
@@ -257,16 +259,17 @@ To achieve the full period attention has to be paid to the choice of $a$ and $m$
 Furthermore, $b$ and $M$ need to be coprime, which can be trivially achieved by setting $b=1$
 @Tezuka1995.
 
-For the purpose of #kmer ordering, the LCG should be utilized to map a #kmer code $c_k$ to a unique
-pseudorandom value $sigma(c_k)$ that defines the #kmer ordering.
+For the purpose of #kmer ordering, the LCG should be utilized to map a #kmer code $kfy(c)$ to a
+unique pseudorandom value $sigma(kfy(c))$ that defines the #kmer ordering.
 Thus one can employ @equation_lcg to define
 
-$ sigma(c_k) = (a c_k + b) mod m. $ <equation_lcg_kmer>
+$ sigma(kfy(c)) = (a kfy(c) + b) mod m. $ <equation_lcg_kmer>
 
-$sigma(c_k)$ is only injective, if each $c_k$ is mapped to a unique value.
+$sigma(kfy(c))$ is only injective, if each $kfy(c)$ is mapped to a unique value.
 To ensure this property, an LGC with full period is used.
 If one handles as up to $2^64$ #kmer codes
-#footnote[$|Omega|^k$ quickly leads to an combinatorial explosion of $|Omega_k|$, making 64-bit integers necessary.]
+#footnote[$|Omega|^k$ quickly leads to an combinatorial explosion of $|kfy(Omega)|$,
+making 64-bit integers necessary.]
 $m = 2^(64)$ is sufficient.
 When carefully implemented, the modulo computation in @equation_lcg is free due to automatic bit
 truncation.
@@ -333,13 +336,14 @@ In the framework of hashing the presented #kmer decomposition function @equation
 be seen as MPHF:
 
 - It is _perfect_ as two different #kmers always get different #kmer codes.
-- It is _minimal_ as the #kmer codes range from $0$ to $|Omega_k| - 1$.
+- It is _minimal_ as the #kmer codes range from $0$ to $|kfy(Omega)| - 1$.
 
 However, unlike other MPHFs (e.g. _BBhash_ @Limasset2017), this MPHF produces hash values,
 i.e. #kmer codes, with the same lexicographic order as the input #kmers.
 Hashes with a pseudorandom ordering can be obtained by applying a LCG according to
 @equation_lcg_kmer to the #kmer code.
-The resulting values are not minimal anymore though, as they are not within $0$ and $|Omega_k| - 1$,
+The resulting values are not minimal anymore though, as they are not within $0$ and
+$|kfy(Omega)| - 1$,
 but they range between $0$ and the LCG period $m - 1$.
 
 I argue that this tradeoff is can easily remedied by separation of concerns in the implementation:
