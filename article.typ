@@ -5,7 +5,7 @@
 #let kmer = box[$k$-mer]
 #let kmers = box[$k$-mers]
 // Mark a variable as 'subject to k'
-#let kfy(content) = math.attach(content, tl: "k")
+#let kfy(content) = math.attach(content, tr: "[k]")
 
 #let todo(msg) = {
   [#text(fill: red, weight: "bold", size: 10pt)[TODO #msg]]
@@ -171,7 +171,7 @@ First, the #kmer is converted into its sequence code as explained above.
 Next, the length of $Omega$, denoted by $|Omega|$, is used as radix to compute the #kmer code
 $kfy(c)$ from the sequence code $C$ via
 
-$ kfy(c) = sum_(i=1)^k c_(i-1) times |Omega|^(k-i). $ <equation_kmer_code>
+$ kfy(c) = sum_(i=0)^(k-1) c_(i) times |Omega|^(k-i-1). $ <equation_kmer_code>
 
 #example[
   Take the $3$-mer #seq[ATG] that uses again $Omega = (mono("A"), mono("C"), mono("G"), mono("T"))$
@@ -198,7 +198,7 @@ where '$div$' denotes integer division.
 Performing #kmer decomposition of a sequence into #kmer codes requires application of
 @equation_kmer_code for each overlapping #kmer. Thus,
 
-$ kfy(c)_j = sum_(i=1)^k c_(i+j-1) times |Omega|^(k-i), $ <equation_naive>
+$ kfy(c)_j = sum_(i=0)^(k-1) c_(i+j) times |Omega|^(k-i-1), $ <equation_naive>
 
 where $j$ defines the 0-based sequence position where the #kmer starts.
 A naive implementation of this formula has a time complexity of $O(n k)$, where $n$ is the length of
@@ -206,11 +206,12 @@ the sequence.
 However, it ignores the relation between two consecutive #kmer codes:
 
 $ kfy(c)_(j+1)
-  &= sum_(i=1)^k c_(i+j) times |Omega|^(k-i) \
-  &= lr(( sum_(i=1)^(k-1) c_(i+j) times |Omega|^(k-i)  )) + c_(k+j) |Omega|^(k-k) \
-  &= lr(( sum_(i=2)^(k) c_(i+j-1) times |Omega|^(k-i+1) )) + c_(k+j) \
-  &= |Omega| lr(( sum_(i=2)^(k) c_(i+j-1) times |Omega|^(k-i) )) + c_(k+j) \
-  //&= |Omega| lr([ lr([ sum_(i=1)^(k) c(i+j-1) times |Omega|^(k-i) ]) - c(j) |Omega|^(k-1) ]) \+ c(k+j) \
+  &= sum_(i=0)^(k-1) c_(i+j+1) times |Omega|^(k-i-1) \
+  &= lr(( sum_(i=0)^(k-2) c_(i+j+1) times |Omega|^(k-i-1)  )) + c_(k+j) |Omega|^(k-k) \
+  &= lr(( sum_(i=1)^(k-1) c_(i+j) times |Omega|^(k-i) )) + c_(k+j) \
+  &= |Omega| lr(( sum_(i=1)^(k-1) c_(i+j) times |Omega|^(k-i-1) )) + c_(k+j) \
+  &= |Omega| lr(( lr(( sum_(i=0)^(k-1) c_(i+j) times |Omega|^(k-i-1) )) - c_(j) |Omega|^(k-1) ))
+     + c_(k+j) \
   &= |Omega| lr(( kfy(c)_(j) - c_(j) |Omega|^(k-1) )) + c_(k+j).
 $ <equation_decomposition>
 
