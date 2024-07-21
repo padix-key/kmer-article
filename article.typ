@@ -54,8 +54,8 @@ between them.
 In another scenario the reads obtained from sequencing need to be mapped to a position on a
 reference genome to assemble a genome or quantify the number of transcripts.
 A _similar region_ can be formalized as so called _alignment_:
-It specifies which position in one sequence corresponds to a position the the other sequence.
-The dynamic programming algorithms to obtain the guaranteed best alignment solution @Needleman1970
+It specifies which position in one sequence corresponds to a position in the other sequence.
+The dynamic programming algorithm to obtain the guaranteed best alignment solution @Needleman1970
 is not computationally feasible for most modern applications: the length and number of sequences is
 simply too large.
 
@@ -85,7 +85,7 @@ If this mapping is unambiguous, i.e. two different #kmers are guaranteed to get 
 integers assigned, it is called _perfect hashing_.
 If for $n$ possible different #kmers the hash values are in the range $0$ to $n-1$, the hash is
 called _minimal perfect hash_.
-This is a desirable property, as it allows to implement the _hash table_ as array of size $n$.
+This is a favorable property, as it allows to implement the _hash table_ as array of size $n$.
 
 Although #kmer decomposition is the fundament of many modern alignment tools, most literature
 about their underlying algorithms focus on how the #kmers are used to find the alignment.
@@ -110,12 +110,12 @@ Let the _symbol code_ be the 0-based position of a symbol in $Omega$.
 Let the _sequence code_ be the symbol codes for all symbols in the sequence.
 
 #example[
-  Take the DNA sequence $s = mono("TATGC")$.
+  Take the DNA sequence $S = mono("TATGC")$.
   The underlying alphabet comprises the nucleotides, hence
   $Omega = (mono("A"), mono("C"), mono("G"), mono("T"))$.
-  The symbol code for the first symbol in the sequence (#seq[T]), is the 0-based position of it
-  in $Omega$ (3).
-  Doing this encoding for all symbols in $s$ yields the sequence code $(3, 0, 3, 2, 1)$
+  The symbol code $c$ for the first symbol in the sequence $s = #seq[T]$, is the 0-based
+  position of it in $Omega$, hence $c = 3$.
+  Doing this encoding for all symbols in $S$ yields the sequence code $C = (3, 0, 3, 2, 1)$.
 ]
 
 Specifically, in case that the sequence is represented as ASCII text
@@ -162,11 +162,11 @@ language.].
 ) <figure_encode>
 
 == #kmer representation
-The aim of the method presented in this article is to represent each #kmer unambigously as single
+The aim of the method presented in this article is to represent each #kmer unambiguously as single
 integer - the hash value.
 Analogous to the symbol code, this integer will be called _#kmer code_.
 First, the #kmer is converted into its sequence code as explained above.
-Next, the length of $Omega$, written as $|Omega|$, is used as radix to compute the #kmer code $c_k$
+Next, the length of $Omega$, denoted by $|Omega|$, is used as radix to compute the #kmer code $c_k$
 from the sequence code $c$ via
 
 $ c_k = sum_(i=1)^k c(i-1) times |Omega|^(k-i). $ <equation_kmer_code>
@@ -192,7 +192,7 @@ $ c(i) = (c_k div |Omega|^(k-i-1)) mod |Omega|, $ <equation_kmer_decode>
 where '$div$' denotes integer division.
 
 == #kmer decomposition
-Performing #kmer decomposition of a seqeunce into #kmer codes requires application of
+Performing #kmer decomposition of a sequence into #kmer codes requires application of
 @equation_kmer_code for each overlapping #kmer. Thus,
 
 $ c_k (j) = sum_(i=1)^k c(i+j-1) times |Omega|^(k-i), $ <equation_naive>
@@ -216,11 +216,11 @@ is removed, the remainder is shifted to the left and the symbol code of the ente
 added.
 
 As @equation_decomposition contains no sum anymore, the time complexity is reduced to $O(n)$.
-Instead the next code $c_k (j+1)$ is computed from the previos code $c_k (j)$.
+Instead the next code $c_k (j+1)$ is computed from the previous code $c_k (j)$.
 Only $c_k (0)$ needs to be computed according to @equation_naive.
 In the implementation of @equation_decomposition potentially further speedup can be achieved if
 $|Omega|$ is a power of two.
-This is true e.g. for unambigous nucleotide sequences with $|Omega| = 4$.
+This is true e.g. for unambiguous nucleotide sequences with $|Omega| = 4$.
 In this case the compiler may substitute this multiplication with a fast bit shift operation
 depending on the hardware architecture.
 
@@ -308,7 +308,7 @@ architecture and programming language.
   caption: [
     Run time of #kmer decomposition using different methods.
     Decomposition was run on a sequence with length 1000.
-    The displayed run time includes also the consersion into sequence code.
+    The displayed run time includes also the conversion into sequence code.
     *naive*: Naive application of @equation_naive for each sequence position.
     *fast*: Application of @equation_decomposition.
     *bbhash*: Application of _BBhash_ @Limasset2017 @BBHashRust on each #kmer string.
@@ -342,7 +342,7 @@ Hashes with a pseudorandom ordering can be obtained by applying a LCG according 
 The resulting values are not minimal anymore though, as they are not within $0$ and $|Omega_k| - 1$,
 but they range between $0$ and the LCG period $m - 1$.
 
-I argue that this tradeoff is can easily remidied by separation of concerns in the implementation:
+I argue that this tradeoff is can easily remedied by separation of concerns in the implementation:
 For building a _hash_table_ minimal perfect hashes are desirable, but random order is not required
 though.
 Hence, the original #kmer code can be used as keys here.
