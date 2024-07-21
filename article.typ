@@ -245,7 +245,7 @@ leading to more spurious than significant #kmer matches downstream @Roberts2004.
 A simple way to remedy this behavior is to apply a pseudorandom ordering to the #kmers, which can
 for example be achieved by choosing an appropriate #kmer hashing function @Zheng2023.
 
-However, in the presented case a #kmer is already represented as integer: the #kmer code.
+However, in the presented case a #kmer is already represented as integer.
 Therefore, only an injective #footnote[one-to-one] function $sigma(kfy(c))$ is required to obtain an
 integer defining the ordering for a #kmer $kfy(c)$, i.e. the #kmer code $p$ is defined to be smaller
 than $q$ if $sigma(p) lt sigma(q)$.
