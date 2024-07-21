@@ -15,6 +15,9 @@
 
 #let seq(content) = [$mono(#content)$]
 
+#let speedup(factor) = [$tilde.op #h(0cm) #factor #h(0cm) times$]
+
+
 #show: ieee.with(
   title: [A fast and simple approach to #kmer decomposition],
   abstract: [
@@ -35,7 +38,7 @@
       email: "patrick.kunzm@gmail.com"
     ),
   ),
-  index-terms: ("k-mers", "Alignment"),
+  index-terms: ("k-mers", "Alignment", "Hashing"),
   bibliography: bibliography("refs.bib"),
 )
 
@@ -289,15 +292,14 @@ $ <equation_params>
 = Results and Discussion
 
 == Decomposition performance
-#todo[Update benchmark values]
 The presented decomposition methods were benchmarked for different #kmer lengths on a 1000~bp
 nucleotide sequence as shown in @figure_benchmark.
 The benchmark was run on a system with _Apple M3 Max_ processor \@ 4.05 GHz using an implementation
 written in _Rust_ (Supplementary File 1).
 As expected, the naive method scales linearly with $k$
-($T approx (0.97 + 0.36 k) thin mu s$, $R^2=0.9997$).
+($T approx (1.00 + 0.38 k) thin mu s$, $R^2=0.9997$).
 In contrast, the fast decomposition method based on @equation_decomposition runs in constant time
-($T approx 1.55 thin mu s$).
+($T approx 1.63 thin mu s$).
 As such potential optimization is hardware-related, this result may depend on the actual
 architecture and programming language.
 
@@ -309,6 +311,9 @@ architecture and programming language.
     The displayed run time includes also the consersion into sequence code.
     *naive*: Naive application of @equation_naive for each sequence position.
     *fast*: Application of @equation_decomposition.
+    *bbhash*: Application of _BBhash_ @Limasset2017 @BBHashRust on each #kmer string.
+    The benchmark is limited to $k <= 14$ due to the memory requirements during construction of the
+    hash function.
   ]
 ) <figure_benchmark>
 
@@ -316,8 +321,8 @@ In summary the fast decomposition method is already faster than the naive method
 $k gt.eq 2$, i.e. for any practically relevant #kmer length.
 The fast method is especially advantageous for algorithms that utilize long #kmers.
 For example, by default _Minimap~2_ @Li2018 uses $k=15$ and _Kallisto_ @Bray2016 uses $k=31$.
-For these examples, the fast decomposition method is $tilde.op #h(0cm) 4 #h(0cm) times$ and
-$tilde.op #h(0cm) 8 #h(0cm) times$ faster than the naive method, respectively.
+For these examples, the fast decomposition method is #speedup(4) and #speedup(8) faster than the
+naive method, respectively.
 
 Note that the implementation used for the benchmark also includes sequence encoding itself:
 If the implementing library already stores sequences in their sequence code form, #kmer
@@ -330,7 +335,7 @@ be seen as MPHF:
 - It is _perfect_ as two different #kmers always get different #kmer codes.
 - It is _minimal_ as the #kmer codes range from $0$ to $|Omega_k| - 1$.
 
-However, unlike other MPHF (e.g. _BBhash_ @Limasset2017), this MPHF produces hash values,
+However, unlike other MPHFs (e.g. _BBhash_ @Limasset2017), this MPHF produces hash values,
 i.e. #kmer codes, with the same lexicographic order as the input #kmers.
 Hashes with a pseudorandom ordering can be obtained by applying a LCG according to
 @equation_lcg_kmer to the #kmer code.
@@ -346,16 +351,16 @@ On the other hand when requiring a random order to select the minimizer from #km
 Downstream the original #kmer codes can be used again.
 
 Apart from its simplicity, the advantage the #kmer decomposition method presented in this article
-over general purpose MPHF such as _BBhash_ is that it leverages the fact that the objects to be
+over general purpose MPHFs such as _BBhash_ is that it leverages the fact that the objects to be
 hashed are simple enumerable #kmers.
-Hence, the construction of this MPHF is almost free. The only information required is $Omega$, which
-contains usually only a few handful of symbols, and $k$.
+Hence, the construction of this MPHF is almost free.
+The only information required is $Omega$, which contains usually only a few symbols, and $k$.
 There is no costly construction time of the MPHF and its storage requirements are minimal,
-in contrast to general purpose MPHF @Fredman1984.
+in contrast to general purpose MPHFs @Fredman1984.
 Furthermore, the more sophisticated computations of such MPHF also require more computation time:
-In the presented benchmark, a _Rust_ implementation of _BBhash_ @BBHashRust required
-$tilde.op #h(0cm) 20 #h(0cm) times$ longer than the fast method based on @equation_decomposition,
-even for $k = 1$ ($T approx (30.82 + 1.49 k) thin mu s$, $R^2=0.83$).
+In the presented benchmark, a _Rust_ implementation of _BBhash_ @BBHashRust required #speedup(20)
+longer than the fast method based on @equation_decomposition, even for $k = 1$
+($T approx (30.75 + 1.50 k) thin mu s$, $R^2=0.83$).
 
 = Conclusion
 
