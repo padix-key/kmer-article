@@ -4,6 +4,7 @@
 
 #let kmer = box[$k$-mer]
 #let kmers = box[$k$-mers]
+// Mark a variable as 'subject to k'
 #let kfy(content) = math.attach(content, tl: "k")
 
 #let todo(msg) = {
@@ -137,8 +138,8 @@ language.].
     column-gutter: 5pt,
     inset: 5pt,
   )[
-    $s_("illegal") <- |Omega|$ \
-    $m_("symbol"->"code") <- "repeat"(s_("illegal"), 256)$\
+    $c_("illegal") <- |Omega|$ \
+    $m_("symbol"->"code") <- "repeat"(c_("illegal"), 256)$\
 
     for $i$, $s$ in enumerate($Omega$): #i \
       $m_("symbol"->"code")["as_ascii"(s)] <- i$ #d \
@@ -154,11 +155,11 @@ language.].
     The input sequence $S$ is subject to alphabet $Omega$, which contains only ASCII-encoded
     symbols.
     As symbol codes are 0-based, the greatest symbol code is $|Omega| - 1$.
-    Hence, $s_("illegal") <- |Omega|$ can be used as marker value to check for symbols that are
-    included ib not in $Omega$.
+    Hence, $c_("illegal") <- |Omega|$ can be used as marker value to check for symbols that are not
+    part of $Omega$.
     The array $m_("symbol"->"code")$ can be indexed with the ASCII code of a symbol to obtain the
     corresponding symbol code.
-    For symbols that are not part of $Omega$, $m_("symbol"->"code")$ would give $s_("illegal")$.
+    For symbols that are not part of $Omega$, $m_("symbol"->"code")$ would give $c_("illegal")$.
   ],
 ) <figure_encode>
 
@@ -238,7 +239,7 @@ This decreases the number of considered #kmers and in consequence improves the s
 However, using the #kmer code directly to determine the ordering is not ideal:
 Especially, if the symbols in $Omega$ are ordered alphabetically, the order in $kfy(Omega)$ is
 lexicographic.
-This means that #kmers with low complexity such as #seq[AAA...] would always be the smallest #kmer
+This means that #kmers with low complexity such as #seq[AAA...] would always be the smallest #kmer,
 leading to more spurious than significant #kmer matches downstream @Roberts2004.
 A simple way to remedy this behavior is to apply a pseudorandom ordering to the #kmers, which can
 for example be achieved by choosing an appropriate #kmer hashing function @Zheng2023.
@@ -250,9 +251,9 @@ than $q$ if $sigma(p) lt sigma(q)$.
 Furthermore, for the use case of computing sequence alignments, the quality of randomness
 is arguably less important than the speed of computation.
 Hence, a _linear congruential generator_ (LCG) is appealing in this case.
-It predicts the next random number in a sequence via
+It predicts the next random number in a sequence via the simple formula
 
-$ x_(n+1) = (a x_n + b) mod m $ <equation_lcg>
+$ x_(n+1) = (a x_n + b) mod m . $ <equation_lcg>
 
 In a LGC with _full period_ the sequence does only repeat after $m$ elements.
 To achieve the full period attention has to be paid to the choice of $a$ and $m$.
@@ -267,7 +268,7 @@ $ sigma(kfy(c)) = (a kfy(c) + b) mod m. $ <equation_lcg_kmer>
 
 $sigma(kfy(c))$ is only injective, if each $kfy(c)$ is mapped to a unique value.
 To ensure this property, an LGC with full period is used.
-If one handles as up to $2^64$ #kmer codes
+If one handles up to $2^64$ #kmer codes
 #footnote[$|Omega|^k$ quickly leads to an combinatorial explosion of $|kfy(Omega)|$,
 making 64-bit integers necessary.]
 $m = 2^(64)$ is sufficient.
@@ -298,7 +299,9 @@ $ <equation_params>
 The presented decomposition methods were benchmarked for different #kmer lengths on a 1000~bp
 nucleotide sequence as shown in @figure_benchmark.
 The benchmark was run on a system with _Apple M3 Max_ processor \@ 4.05 GHz using an implementation
-written in _Rust_ (Supplementary File 1).
+written in _Rust_
+#footnote[The benchmark code as well the raw data is available at
+#box[#link("https://github.com/padix-key/kmer-article")] and as archive @BenchmarkArchive.].
 As expected, the naive method scales linearly with $k$
 ($T approx (1.00 + 0.38 k) thin mu s$, $R^2=0.9997$).
 In contrast, the fast decomposition method based on @equation_decomposition runs in constant time
@@ -320,7 +323,7 @@ architecture and programming language.
   ]
 ) <figure_benchmark>
 
-In summary the fast decomposition method is already faster than the naive method for
+In summary, the fast decomposition method is already faster than the naive method for
 $k gt.eq 2$, i.e. for any practically relevant #kmer length.
 The fast method is especially advantageous for algorithms that utilize long #kmers.
 For example, by default _Minimap~2_ @Li2018 uses $k=15$ and _Kallisto_ @Bray2016 uses $k=31$.
@@ -340,22 +343,22 @@ be seen as MPHF:
 
 However, unlike other MPHFs (e.g. _BBhash_ @Limasset2017), this MPHF produces hash values,
 i.e. #kmer codes, with the same lexicographic order as the input #kmers.
-Hashes with a pseudorandom ordering can be obtained by applying a LCG according to
-@equation_lcg_kmer to the #kmer code.
+Hashes with a pseudorandom ordering can be obtained by applying an LCG to the #kmer code according
+to @equation_lcg_kmer.
 The resulting values are not minimal anymore though, as they are not within $0$ and
 $|kfy(Omega)| - 1$,
 but they range between $0$ and the LCG period $m - 1$.
 
-I argue that this tradeoff is can easily remedied by separation of concerns in the implementation:
+This tradeoff can easily remedied by separation of concerns in the implementation:
 For building a _hash_table_ minimal perfect hashes are desirable, but random order is not required
 though.
 Hence, the original #kmer code can be used as keys here.
-On the other hand when requiring a random order to select the minimizer from #kmer codes
-@Roberts2004, for example, one can use @equation_lcg_kmer to obtain the order only.
+On the other hand when requiring a random order, for example, to select the minimizer from #kmer
+codes @Roberts2004, one can use @equation_lcg_kmer to obtain the order only.
 Downstream the original #kmer codes can be used again.
 
 Apart from its simplicity, the advantage the #kmer decomposition method presented in this article
-over general purpose MPHFs such as _BBhash_ is that it leverages the fact that the objects to be
+over general purpose MPHFs such as _BBhash_ is that it leverages the fact, that the objects to be
 hashed are simple enumerable #kmers.
 Hence, the construction of this MPHF is almost free.
 The only information required is $Omega$, which contains usually only a few symbols, and $k$.
@@ -369,14 +372,15 @@ longer than the fast method based on @equation_decomposition, even for $k = 1$
 = Conclusion
 
 This article advocates representing #kmers as integer in memory for mainly two reasons:
-First, it reduces the time complexity of #kmer decomposition to $O(n)$.
+First, using the presented algorithm #kmer decomposition can be achieved in constant time with
+respect to $k$.
 Since modern sequence alignment algorithms strive to be as fast as possible, this performance gain
 may pose a crucial advantage.
 Second, many current application of #kmers already at least implicitly rely on conversion of #kmers
 into an integer by means of hashing.
 Among other applications, this includes
 
-- comparison of two sets of #kmers to approximate sequence identity (e.g. @Edgar2004),
+- comparison of two #kmer sets to approximate sequence identity (e.g. @Edgar2004),
 - efficiently finding match positions between two sequences using a #kmer lookup table
   (e.g. @Steinegger2017) and
 - map reads to genes using pseudoalignment (e.g. @Bray2016).
@@ -384,7 +388,7 @@ Among other applications, this includes
 Already having #kmers as unique integers at hand removes the need for hashing them and thus may
 further speeds up such applications.
 
-In addition, representing a sequence as array of integers, has the advantage of generalizing the
+In addition, representing a sequence as array of integers has the advantage of generalizing the
 definition of a sequence beyond simple text:
 If the alphabet $Omega$ does contain other objects than single characters as symbols, e.g. arbitrary
 strings or integers, each enumeration of these objects can be considered a sequence.
