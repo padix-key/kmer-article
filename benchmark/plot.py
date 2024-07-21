@@ -71,7 +71,7 @@ upper_ax, lower_ax = ax_splits
 lower_ax.set_xlim(0, k[-1]+1)
 lower_ax.set_xlabel("k")
 # Place a common y-label between the two axes
-lower_ax.set_ylabel("runtime (µs)")
+lower_ax.set_ylabel("run time (µs)")
 lower_ax.yaxis.set_label_coords(-0.1, 1.0)
 # Remove axis between the two splits
 upper_ax.spines.bottom.set_visible(False)
