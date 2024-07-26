@@ -61,9 +61,9 @@ The dynamic programming algorithm to obtain the guaranteed best alignment soluti
 is not computationally feasible for most modern applications: the length and number of sequences is
 simply too large.
 
-To solve this problem heuristic approaches emerged. Many modern algorithms
-(see @Bray2016 @Steinegger2017 as examples) build upon the concept of finding exact matches of
-length $k$ between the sequences @Altschul1990.
+To solve this problem, heuristic approaches emerged.
+Many modern algorithms (see @Bray2016 @Steinegger2017 as examples) build upon the concept of finding
+exact matches of length $k$ between the sequences @Altschul1990.
 These subsequences of length $k$ are termed #kmers.
 The process of finding all overlapping #kmers in a sequence is commonly titled
 _k-mer decomposition_.
@@ -302,7 +302,7 @@ nucleotide sequence as shown in @figure_benchmark.
 The benchmark was run on a system with _Apple M3 Max_ processor \@ 4.05 GHz using an implementation
 written in _Rust_
 #footnote[The benchmark code as well the raw data is available at
-#box[#link("https://github.com/padix-key/kmer-article")] and as archive @BenchmarkArchive.].
+#box[_#link("https://github.com/padix-key/kmer-article")_] and as archive @BenchmarkArchive.].
 As expected, the naive method scales linearly with $k$
 ($T approx (1.00 + 0.38 k) thin mu s$, $R^2=0.9997$).
 In contrast, the fast decomposition method based on @equation_decomposition runs in constant time
@@ -337,7 +337,7 @@ decomposition becomes faster than shown in the benchmark.
 
 == The #kmer code as minimal perfect hash
 In the framework of hashing the presented #kmer decomposition function @equation_decomposition can
-be seen as MPHF:
+be seen as MPHF, as long as only a single $k$ is used:
 
 - It is _perfect_ as two different #kmers always get different #kmer codes.
 - It is _minimal_ as the #kmer codes range from $0$ to $|kfy(Omega)| - 1$.
@@ -351,7 +351,7 @@ $|kfy(Omega)| - 1$,
 but they range between $0$ and the LCG period $m - 1$.
 
 This tradeoff can easily remedied by separation of concerns in the implementation:
-For building a _hash_table_ minimal perfect hashes are desirable, but random order is not required
+For building a _hash table_ minimal perfect hashes are desirable, but random order is not required
 though.
 Hence, the original #kmer code can be used as keys here.
 On the other hand when requiring a random order, for example, to select the minimizer from #kmer
@@ -366,8 +366,8 @@ The only information required is $Omega$, which contains usually only a few symb
 There is no costly construction time of the MPHF and its storage requirements are minimal,
 in contrast to general purpose MPHFs @Fredman1984.
 Furthermore, the more sophisticated computations of such MPHF also require more computation time:
-In the presented benchmark, a _Rust_ implementation of _BBhash_ @BBHashRust required #speedup(20)
-longer than the fast method based on @equation_decomposition, even for $k = 1$
+In the presented benchmark (@figure_benchmark), a _Rust_ implementation of _BBhash_ @BBHashRust
+required #speedup(20) longer than the fast method based on @equation_decomposition, even for $k = 1$
 ($T approx (30.75 + 1.50 k) thin mu s$, $R^2=0.83$).
 
 = Conclusion
